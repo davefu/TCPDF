@@ -192,6 +192,8 @@ class TCPDF_FILTERS {
 		$decoded = '';
 		// all white-space characters shall be ignored
 		$data = preg_replace('/[\s]/', '', $data);
+		// remove start and end 3-character sequence <~> (3Ch)(7Eh)(3Eh) if there is nothing inside
+		$data = str_replace('<~>', '', $data);
 		// remove start sequence 2-character sequence <~ (3Ch)(7Eh)
 		if (strpos($data, '<~') !== false) {
 			// remove EOD and extra data (if any)
@@ -356,7 +358,11 @@ class TCPDF_FILTERS {
 		// initialize string to return
 		$decoded = @gzuncompress($data);
 		if ($decoded === false) {
-			self::Error('decodeFilterFlateDecode: invalid code');
+			$f = tempnam('/tmp', 'gz_fix');
+			file_put_contents($f, '\x1f\x8b\x08\x00\x00\x00\x00\x00' . $data);
+			$decoded = file_get_contents('compress.zlib://' . $f);
+			//TODO: is there a way how to checkou out if this method helped out or not to throw error or not?
+//			self::Error('decodeFilterFlateDecode: invalid code');
 		}
 		return $decoded;
 	}
